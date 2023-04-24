@@ -1,18 +1,15 @@
-
-
 //------------------------------------------------------------------------------ DESAFÍO 2 ----------------------------------------------------------------------------------
 
-
 const fs = require("fs");
-const path = require("path");
-
 
 class ProductManager {
   #id = 0; // id oomo variable privada.
-  constructor() {
+  constructor(path) {
+    //--> La ruta como parámetro, para luego al instanciar la clase, pasarle la ruta real.
+    this.path = path;
     // escribo el archivo Síncrona, pero antes, valido que no exista.
-    if (!fs.existsSync("./files/products.json")) {
-      this.path = fs.writeFileSync("./files/products.json", JSON.stringify([])); //--> varible this.path Lo tengo que stringicar para que sea leido en el formato .json
+    if (!fs.existsSync(this.path)) {
+      fs.writeFileSync(this.path, JSON.stringify([]));
     }
   }
   //--------------------------------- Debe guardar objetos con el siguiente formato ------------------------------------------------------------------
@@ -21,7 +18,8 @@ class ProductManager {
       const product = { title, description, price, thumbnail, code, stock };
       product.id = this.#getID(); // asignarle un id autoincrementable
       const productosAct = await this.getProducts(); //obtengo el archivo con los productos actuales, llamando a getProducts()
-      if ( //--> Valido que ningun campo sea undefined, antes de pushear el producto. 
+      if (
+        //--> Valido que ningun campo sea undefined, antes de pushear el producto.
         (product.title != undefined) &
         (product.description != undefined) &
         (product.price != undefined) &
@@ -31,14 +29,10 @@ class ProductManager {
       ) {
         productosAct.push(product); // Agrego el nuevo producto a la lista anterior
         //Debido a que la lista anterior se modificó, tengo que escribirla nuevamente(actualizada y en formato stringify);
-        await fs.promises.writeFile(
-          `${this.path}`,
-         JSON.stringify(productosAct)
-        );
-      }else{
+        await fs.promises.writeFile(this.path, JSON.stringify(productosAct));
+      } else {
         console.log("Todos los campos son obligatorios");
       }
-      
     } catch (err) {
       console.log(
         `Algo salió mal al intentar agregar un producto ERROR:${err}`
@@ -53,10 +47,7 @@ class ProductManager {
   //----------------------------- Debe tener un método addProduct (retorna los productos parseados) -----------------------------------------------------------------
   async getProducts() {
     try {
-      const productosAct = await fs.promises.readFile(
-        `${this.path}`,
-        "utf-8"
-      ); //leo y guardo en variable los productos
+      const productosAct = await fs.promises.readFile(this.path, "utf-8"); //leo y guardo en variable los productos
       const productosActParseados = JSON.parse(productosAct); // Retorno los productos parseados.
       return productosActParseados;
     } catch (err) {
@@ -77,7 +68,7 @@ class ProductManager {
       filtroID.length === 0
         ? console.log("No existe ningún producto con el ID especificado.")
         : console.log("Producto encontrado exitosamente"); //--> Operador ternario, que valida que la lista tenga algo y devuelta el array.
-           return filtroID;
+      return filtroID;
     } catch (err) {
       console.log(
         `Algo salió mal al intentar obtener un producto por su ID, ERROR: ${err}`
@@ -105,10 +96,7 @@ class ProductManager {
       } else {
         productosAct[indiceID][key] = newValue; // dentro de los productos, al índice indicado, le hago las modificaciones.
         //Debido a que la lista anterior se modificó, tengo que escribirla nuevamente(actualizada y en formato stringify);
-        await fs.promises.writeFile(
-          "./files/products.json",
-          JSON.stringify(productosAct)
-        );
+        await fs.promises.writeFile(this.path, JSON.stringify(productosAct));
       }
     } catch (err) {
       console.log(
@@ -124,16 +112,15 @@ class ProductManager {
       const findIndex = productosAct.findIndex(
         (product) => product.id == idProduct
       );
-      productosAct.splice(findIndex, 1) // Con el método splica, el primer argumento el índice en donde comienza a eliminar, y el segundo es cuántos elimina. Con el 1, sólo elimina ese.
-      
+      productosAct.splice(findIndex, 1); // Con el método splica, el primer argumento el índice en donde comienza a eliminar, y el segundo es cuántos elimina. Con el 1, sólo elimina ese.
+
       //Debido a que la lista anterior se modificó, tengo que escribirla nuevamente(actualizada y en formato stringify);
-      await fs.promises.writeFile(
-        "./files/products.json",
-        JSON.stringify(productosAct)
+      await fs.promises.writeFile(this.path, JSON.stringify(productosAct));
+
+      return console.log(
+        "Producto eliminado exitosamente, los productos actuales ahora son: ",
+        await this.getProducts()
       );
-
-      return console.log("Producto eliminado exitosamente, los productos actuales ahora son: ", await this.getProducts());
-
     } catch (err) {
       console.log(
         `Algo salió mal al intentar eliminar un producto por su ID, ERROR: ${err}`
@@ -142,12 +129,9 @@ class ProductManager {
   }
 }
 
-
-
-
 //----------------------- CREO UNA INSTRANCIA DE LA CLASE Y HAGO LAS PRUEBAS CON UNA FUNCIÓN ASÍNCRONA -------------------------
 
-const products = new ProductManager();
+const products = new ProductManager("./files/products.json"); // le paso a ruta.
 
 const pruebas = async () => {
   try {
@@ -157,7 +141,7 @@ const pruebas = async () => {
       "10 USD",
       "ruta de imagen",
       123,
-      1,
+      1
     );
 
     await products.addProduct(
@@ -168,18 +152,19 @@ const pruebas = async () => {
       154,
       2
     );
-    // products.updateProduct(1, "title", "Nuevo titulo usando update");
-    // await products.updateProduct(1, "description", "Esta es una nueva descripción")
-    // await products.updateProduct(1, "price", 500)
-    //console.log(await products.getProductById(2)); //--> Obtengo el producto con id==2.
-    //await products.deleteProduct(1);
-     //console.log(await products.getProducts()); //--> Muestro por consola los productos.
-
+    await products.updateProduct(1, "title", "Nuevo titulo usando update"); //--> actualizo datos. 
+    await products.updateProduct(
+      1,
+      "description",
+      "Esta es una nueva descripción"
+    );
+    await products.updateProduct(1, "price", 500);
+    console.log(await products.getProductById(2)); //--> Obtengo el producto con id === 2.
+    await products.deleteProduct(1);
+    console.log(await products.getProducts()); //--> Muestro por consola los productos.
   } catch (err) {
     console.log(`Algo salió mal al hacer las pruebas, ERROR: ${err}`);
   }
 };
 
 pruebas(); // ejecuto las pruebas
-
-
